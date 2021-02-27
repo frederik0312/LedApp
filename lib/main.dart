@@ -1,5 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:LedApp/colorPicker.dart';
+import 'package:LedApp/discover.dart';
+
 import 'globals.dart' as globals;
 import 'package:LedApp/brightness.dart';
 import 'package:flutter/material.dart';
@@ -12,8 +15,7 @@ void main() {
 
 class MyApp extends StatelessWidget {
   // This widget is the root of your application.
-  Timer _debounce;
-  bool done = false;
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -53,9 +55,12 @@ class _MyHomePageState extends State<MyHomePage> {
     initialPage: 0,
     keepPage: true,
   );
+/* -------------------------------------------------------- */
 
+/* ---------------------------------------------------------------------------- */
   Timer _debounce;
   bool done = false;
+
   @override
   void dispose() {
     _controller.dispose();
@@ -65,7 +70,7 @@ class _MyHomePageState extends State<MyHomePage> {
   Color _currentColor = Colors.blue;
   double _currentSliderValue = 20;
   int selectedIndex = 0;
-
+  StreamController<double> _streamController = StreamController<double>();
   @override
   Widget build(BuildContext context) {
     setState(() {
@@ -102,13 +107,17 @@ class _MyHomePageState extends State<MyHomePage> {
               padding: const EdgeInsets.only(left: 20),
               child: Column(
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.only(top: 30),
-                    child: Align(
-                      alignment: Alignment.topLeft,
-                      child: Text(
-                        "Navn på device",
-                        style: TextStyle(color: Colors.white, fontSize: 20),
+                  GestureDetector(
+                    onTap: () => Navigator.of(context)
+                        .push(MaterialPageRoute(builder: (_) => Discover())),
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 30),
+                      child: Align(
+                        alignment: Alignment.topLeft,
+                        child: Text(
+                          "Navn på device",
+                          style: TextStyle(color: Colors.white, fontSize: 20),
+                        ),
                       ),
                     ),
                   ),
@@ -147,16 +156,11 @@ class _MyHomePageState extends State<MyHomePage> {
                 controller: _controller,
                 allowImplicitScrolling: false,
                 children: [
-                  Center(child: Brightness()),
                   Center(
-                    child: CircleColorPicker(
-                      initialColor: _currentColor,
-                      onChanged: _onColorChanged,
-                      colorCodeBuilder: (context, color) {
-                        return Container();
-                      },
-                    ),
-                  ),
+                      child: Brightness(
+                    stream: _streamController.stream,
+                  )),
+                  Center(child: ColorPicker()),
                 ],
               ),
             ),
@@ -173,46 +177,6 @@ class _MyHomePageState extends State<MyHomePage> {
       selectedIndex = index;
       _controller.animateToPage(index,
           duration: Duration(milliseconds: 500), curve: Curves.linear);
-    });
-  }
-
-  void _onColorChanged(Color color) {
-    setState(() {
-      _currentColor = color;
-      globals.currentColor = _currentColor;
-    });
-    api("&R=" +
-        _currentColor.red.toString() +
-        "&G=" +
-        _currentColor.green.toString() +
-        "&B=" +
-        _currentColor.blue.toString());
-  }
-
-  Future<http.Response> api(String parameter) async {
-    setState(() {
-      globals.done = false;
-    });
-    if (_debounce?.isActive ?? false) _debounce.cancel();
-    _debounce = Timer(const Duration(milliseconds: 500), () async {
-      final response = await http.post(
-        'http://192.168.0.190/win&' + parameter,
-        headers: <String, String>{
-          'Content-Type': 'application/xml; charset=UTF-8',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        // If the server did return a 201 CREATED response,
-        // then parse the JSON.
-        setState(() {
-          globals.done = true;
-        });
-      } else {
-        // If the server did not return a 201 CREATED response,
-        // then throw an exception.
-        print(response.statusCode);
-      }
     });
   }
 }

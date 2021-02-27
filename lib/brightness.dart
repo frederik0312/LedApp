@@ -8,6 +8,8 @@ import 'globals.dart' as globals;
 
 class Brightness extends StatefulWidget {
   @override
+  final Stream<double> stream;
+  Brightness({this.stream});
   _BrightnessState createState() => _BrightnessState();
 }
 
@@ -15,6 +17,7 @@ class _BrightnessState extends State<Brightness>
     with AutomaticKeepAliveClientMixin<Brightness> {
   Timer _debounce;
   bool done = false;
+  double _currentSliderValue = 10;
 
   @override
   Widget build(BuildContext context) {
@@ -64,7 +67,7 @@ class _BrightnessState extends State<Brightness>
                                   _currentSliderValue = value;
                                   globals.currentSliderValue =
                                       _currentSliderValue;
-                                  api("&A=" + value.toString());
+                                  globals.api("&A=" + value.toString());
                                 });
                               },
                             ),
@@ -88,33 +91,6 @@ class _BrightnessState extends State<Brightness>
         ],
       ),
     );
-  }
-
-  Future<http.Response> api(String parameter) async {
-    setState(() {
-      globals.done = false;
-    });
-    if (_debounce?.isActive ?? false) _debounce.cancel();
-    _debounce = Timer(const Duration(milliseconds: 500), () async {
-      final response = await http.post(
-        'http://192.168.0.190/win&' + parameter,
-        headers: <String, String>{
-          'Content-Type': 'application/xml; charset=UTF-8',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        // If the server did return a 201 CREATED response,
-        // then parse the JSON.
-        setState(() {
-          globals.done = true;
-        });
-      } else {
-        // If the server did not return a 201 CREATED response,
-        // then throw an exception.
-        print(response.statusCode);
-      }
-    });
   }
 
   @override
